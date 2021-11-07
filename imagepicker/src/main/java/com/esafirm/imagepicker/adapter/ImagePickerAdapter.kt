@@ -1,23 +1,26 @@
 package com.esafirm.imagepicker.adapter
 
 import android.content.Context
+import android.net.Uri
+import android.provider.MediaStore
 import android.view.View
 import android.view.ViewGroup
 import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.TextView
 import androidx.core.content.ContextCompat
+import androidx.recyclerview.widget.AsyncListDiffer
 import androidx.recyclerview.widget.RecyclerView.ViewHolder
 import com.esafirm.imagepicker.R
 import com.esafirm.imagepicker.adapter.ImagePickerAdapter.ImageViewHolder
 import com.esafirm.imagepicker.features.imageloader.ImageLoader
 import com.esafirm.imagepicker.features.imageloader.ImageType
 import com.esafirm.imagepicker.helper.ImagePickerUtils
+import com.esafirm.imagepicker.helper.diff.SimpleDiffUtilCallBack
 import com.esafirm.imagepicker.listeners.OnImageClickListener
 import com.esafirm.imagepicker.listeners.OnImageSelectedListener
 import com.esafirm.imagepicker.model.Image
 import kotlinx.android.synthetic.main.ef_imagepicker_item_image.view.*
-import java.io.File
 import java.util.HashMap
 
 class ImagePickerAdapter(
@@ -27,7 +30,10 @@ class ImagePickerAdapter(
     private val itemClickListener: OnImageClickListener
 ) : BaseListAdapter<ImageViewHolder>(context, imageLoader) {
 
-    private val images: MutableList<Image> = mutableListOf()
+    private val listDiffer by lazy {
+        AsyncListDiffer<Image>(this, SimpleDiffUtilCallBack())
+    }
+
     val selectedImages: MutableList<Image> = mutableListOf()
 
     private var imageSelectedListener: OnImageSelectedListener? = null
@@ -49,7 +55,7 @@ class ImagePickerAdapter(
     }
 
     override fun onBindViewHolder(viewHolder: ImageViewHolder, position: Int) {
-        val image = images.getOrNull(position) ?: return
+        val image = getItem(position) ?: return
 
         val isSelected = isSelected(image)
         imageLoader.loadImage(image, viewHolder.imageView, ImageType.GALLERY)
@@ -64,8 +70,10 @@ class ImagePickerAdapter(
 
         if (ImagePickerUtils.isVideoFormat(image)) {
             if (!videoDurationHolder.containsKey(image.id)) {
+                val uri =
+                    Uri.withAppendedPath(MediaStore.Files.getContentUri("external"), "" + image.id)
                 videoDurationHolder[image.id] = ImagePickerUtils.getVideoDurationLabel(
-                    context, File(image.path)
+                    context, uri
                 )
             }
 
@@ -78,7 +86,7 @@ class ImagePickerAdapter(
             fileTypeIndicator.visibility = if (showFileTypeIndicator) View.VISIBLE else View.GONE
             alphaView.alpha = if (isSelected) 0.5f else 0f
             itemView.setOnClickListener {
-                val shouldSelect = itemClickListener.onImageClick(isSelected)
+                val shouldSelect = itemClickListener(isSelected)
 
                 if (isSelected) {
                     removeSelectedImage(image, position)
@@ -97,11 +105,10 @@ class ImagePickerAdapter(
         return selectedImages.any { it.path == image.path }
     }
 
-    override fun getItemCount() = images.size
+    override fun getItemCount() = listDiffer.currentList.size
 
     fun setData(images: List<Image>) {
-        this.images.clear()
-        this.images.addAll(images)
+        listDiffer.submitList(images)
     }
 
     private fun addSelected(image: Image, position: Int) {
@@ -127,14 +134,14 @@ class ImagePickerAdapter(
 
     private fun mutateSelection(runnable: Runnable) {
         runnable.run()
-        imageSelectedListener?.onSelectionUpdate(selectedImages)
+        imageSelectedListener?.invoke(selectedImages)
     }
 
     fun setImageSelectedListener(imageSelectedListener: OnImageSelectedListener?) {
         this.imageSelectedListener = imageSelectedListener
     }
 
-    fun getItem(position: Int) = images.getOrNull(position)
+    private fun getItem(position: Int) = listDiffer.currentList.getOrNull(position)
 
     class ImageViewHolder(itemView: View) : ViewHolder(itemView) {
         val imageView: ImageView = itemView.image_view
