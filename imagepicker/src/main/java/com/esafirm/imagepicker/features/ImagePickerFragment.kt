@@ -7,7 +7,9 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.content.res.Configuration
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
+import android.os.Environment
 import android.os.Parcelable
 import android.provider.Settings
 import android.view.LayoutInflater
@@ -37,6 +39,11 @@ class ImagePickerFragment : Fragment() {
 
     private var binding: EfFragmentImagePickerBinding? = null
     private lateinit var recyclerViewManager: RecyclerViewManager
+
+    private val IS_EXTERNAL_STORAGE_LEGACY =
+        Build.VERSION.SDK_INT < Build.VERSION_CODES.Q || Environment.isExternalStorageLegacy()
+    private val REQUIRED_EXTERNAL_STORAGE_PERMISSION =
+        if (IS_EXTERNAL_STORAGE_LEGACY) Manifest.permission.WRITE_EXTERNAL_STORAGE else Manifest.permission.READ_EXTERNAL_STORAGE
 
     private val preferences: ImagePickerPreferences by lazy {
         ImagePickerPreferences(requireContext())
@@ -246,7 +253,7 @@ class ImagePickerFragment : Fragment() {
     private fun loadDataWithPermission() {
         val rc = ActivityCompat.checkSelfPermission(
             requireContext(),
-            Manifest.permission.WRITE_EXTERNAL_STORAGE
+            REQUIRED_EXTERNAL_STORAGE_PERMISSION
         )
         if (rc == PackageManager.PERMISSION_GRANTED) {
             loadData()
@@ -264,7 +271,7 @@ class ImagePickerFragment : Fragment() {
      */
     private fun requestWriteExternalPermission() {
         IpLogger.w("Write External permission is not granted. Requesting permission")
-        val permission = Manifest.permission.WRITE_EXTERNAL_STORAGE
+        val permission = REQUIRED_EXTERNAL_STORAGE_PERMISSION
         when {
             shouldShowRequestPermissionRationale(permission) -> {
                 requestPermissionLauncher.launch(permission)
