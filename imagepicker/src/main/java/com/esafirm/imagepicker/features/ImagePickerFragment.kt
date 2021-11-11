@@ -40,8 +40,7 @@ class ImagePickerFragment : Fragment() {
     private var binding: EfFragmentImagePickerBinding? = null
     private lateinit var recyclerViewManager: RecyclerViewManager
 
-    private val IS_EXTERNAL_STORAGE_LEGACY =
-        Build.VERSION.SDK_INT < Build.VERSION_CODES.Q || Environment.isExternalStorageLegacy()
+    private val IS_EXTERNAL_STORAGE_LEGACY = Build.VERSION.SDK_INT < Build.VERSION_CODES.Q
     private val REQUIRED_EXTERNAL_STORAGE_PERMISSION =
         if (IS_EXTERNAL_STORAGE_LEGACY) Manifest.permission.WRITE_EXTERNAL_STORAGE else Manifest.permission.READ_EXTERNAL_STORAGE
 
