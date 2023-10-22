@@ -56,6 +56,20 @@ artifacts {
     archives sourcesJar
 }
 
+publishing {
+    publications {
+        release(MavenPublication) {
+            groupId = 'com.github.ZupersoftSolutions'
+            artifactId = 'android-image-picker'
+            version = '3.1.4'
+
+            afterEvaluate {
+                from components.release
+            }
+        }
+    }
+}
+
 android {
     publishing {
         singleVariant('release') {
